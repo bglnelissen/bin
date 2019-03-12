@@ -1,0 +1,27 @@
+#!/bin/bash
+# Change resolution from 'normal' to 'high' or the other way around.
+# b.nelissen
+
+# list valid modes using cscreen -v
+
+# cscreen -d 32 -x 1650 -y 1050 
+# cscreen -d 32 -x 1280 -y 800 
+# cscreen -d 32 -x 2048 -y 1280
+
+# Display
+DisplayID=4280600
+xA=1650
+yA=1050
+xB=1280
+yB=800
+
+xy="$(cscreen | grep -w ${DisplayID} | awk '{print $4 $5}')"
+if [[ "${xA}${yA}" != "$xy" ]]; then
+	# Not A, so set it like A
+	echo "Setting: x:${xA} y:${yA} on display: $DisplayID"
+	cscreen -m -i "$DisplayID" -x "${xA}" -y "${yA}"
+else
+	# it is like A, so set ik like B
+	echo "Setting: x:${xB} y:${yB} on display: $DisplayID"
+	cscreen -m -i "$DisplayID" -x "${xB}" -y "${yB}"
+fi

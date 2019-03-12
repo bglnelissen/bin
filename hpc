@@ -1,0 +1,94 @@
+#!/bin/bash
+# Connect through the UMCU (University Medical Center Utrecht) gateway to the research-hpc (high performance cluster).
+# b.nelissen
+# 2014 April
+
+# setup variables
+GWHOST="gw.op.umcutrecht.nl"
+HPCHOST="hpcs01.op.umcutrecht.nl"
+HPCUSER="bnelissen"
+HPCKEY="${HOME}/.ssh/id_rsa_hpc" # private key, the public key is on the server
+PORT=2222
+SSHFLAGS="$@" 
+# mount hpc
+VOLUMENAME="Llama"
+MOUNTPOINT="/Volumes/${VOLUMENAME}"
+REMOTELOCATION="~" # leave empty for home ""
+
+# setup functions
+function echobold {
+  echo -e "\033[1m${1}\033[0m"
+}
+
+# say hello
+clear
+echobold "$(basename $0) will help you to setup your ssh tunnel running in the background"
+echo "  (need help? b.g.l.nelissen@umcutrecht.nl)"
+echo ""
+
+# check if host is available
+PINGOUTPUT=$(ping -c 1 "$GWHOST")
+PINGEXITSTATUS=$?
+if [[ 0 != $PINGEXITSTATUS ]]; then
+  # ping has an exit status that is not null (=error)
+  echo "Can not ping $GWHOST"
+  echo "Exit $(basename $0)"
+  exit 1
+else
+  # capture ip address of server using the previously ran 'ping' command
+  HOSTIP=$(echo $PINGOUTPUT| sed 's/^.*(\(.*\)).*$/\1/')
+  # capture current running ssh tunnels (we only need 1 tunnel...)
+  SSHTUNNELS=$(lsof -i -n | grep -i [s]sh | grep -i "ESTABLISHED" )
+  if [[ $(echo $SSHTUNNELS | grep -i ${HOSTIP} | wc -l|awk '{print $1}') != 0 ]]; then
+    # Tunnel already exists, but does it work?
+    if [[ $(ssh -o BatchMode=yes  -p "$PORT" "$HPCUSER"@localhost whoami) == "$HPCUSER" ]]; then
+      SETUPTUNNEL=0 # it does work
+    else
+      SETUPTUNNEL=1 # it does not work (can happen when computer went to sleep or such)
+    fi
+  else
+    SETUPTUNNEL=1 # no tunnel yet
+  fi
+  if [[ 0 != $SETUPTUNNEL ]]; then
+    echo
+    echobold "Setting up ssh tunnel:"
+    echo "  ssh -f -N -A -i "${HPCKEY}" -L "${PORT}":"$HPCHOST":22 "$HPCUSER"@"$GWHOST""
+    ssh -f -N -A -i "${HPCKEY}" -L "${PORT}":"$HPCHOST":22 "$HPCUSER"@"$GWHOST"
+    if [[ 0 != $? ]]; then # error
+      echo "Can not connect..."
+      echo "Exit $(basename $0)"
+      exit 1
+    fi
+    SSHTUNNELS="$(lsof -i -n | grep -i [s]sh | grep -i "ESTABLISHED" )"
+  else
+    echobold "ssh tunnel already exists and can be used"
+  fi
+  # show active tunnel
+  echo ""
+  echobold "Active ssh connections"
+    echo "  $(echo "$SSHTUNNELS" | grep -i '\:ssh' | awk '{print "Connection name: " $9}' )"  # show the user how to connect to the tunnel
+  echo ""
+  echobold "How to:"
+  echobold "* SSH on "$HPCHOST" over port ${PORT}"
+  echo "  ssh ${SSHFLAGS} -p ${PORT} ${HPCUSER}@localhost"
+  echo ""
+  echobold "* Copy files to/from "$HPCHOST" over port ${PORT}"
+  echo "  scp -P ${PORT} ${HPCUSER}@localhost:remote_file ./"
+  echo "  scp -P ${PORT} local_file ${HPCUSER}@localhost:remote_file "
+  echo "  rsync -e \"ssh -l ${HPCUSER} -p ${PORT}\" --stats --progress --human-readable --archive --update  --links --exclude .* local_folder/ localhost:remote_folder"
+  echo ""
+  echobold "* Mount disk using sshfs"
+  echo "  mkdir -p ${MOUNTPOINT} && sshfs -o cache=no -o follow_symlinks -o workaround=rename -o reconnect -o port=${PORT} -o volname=${VOLUMENAME} ${HPCUSER}@localhost:${LOCATION} $MOUNTPOINT"
+  echo
+  echobold "* SFTP (e.g. Fetch, Cyberduck) to "$HPCHOST" over port ${PORT}"
+  echo "  Server:     localhost"
+  echo "  Port:       ${PORT}"
+  echo "  Username:   ${HPCUSER}"
+  echo "  Password:   ********"
+  echo ""
+  echobold "* Stop this tunnel"
+  echo "  kill $(echo $SSHTUNNELS | awk '{print $2}') "
+  echo ""
+  # ssh login
+  ssh $SSHFLAGS -p $PORT ${HPCUSER}@localhost
+fi

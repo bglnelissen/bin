@@ -1,0 +1,97 @@
+#!/bin/bash
+# Simple compression script that uses multicore compression. Files are stored with a SHA1 checksum.
+# b.nelissen
+
+# Dependencies
+DEPENDENCIES=("pv" "pigz" "tar" "du") # must exist in PATH
+DEPENDENCIES=( $( for el in "${DEPENDENCIES[@]}"; do echo "$el"; done | sort) )
+
+# Variables
+SCRIPTNAME="$(basename $0)"
+COMPRESSION="--best" # default is -6, -0 is no compression, -9 = --best
+
+# Functions
+# Errors go to stderr
+err() {
+  echo "${SCRIPTNAME} ERROR: $@" >&2
+}
+
+# usage message
+usage() {
+cat <<- EOF
+
+Usage:
+- $SCRIPTNAME file [output/folder]
+- $SCRIPTNAME input/folder/ [output/folder]
+
+EOF
+}
+
+# check deps
+checkDependencies(){
+  DEPS=""
+  DEPS_FAIL="0"
+  for DEP in ${DEPENDENCIES[@]}; do
+    if [[ 0 != "$(command -v "$DEP" >/dev/null ;echo "$?")" ]]; then
+       err "Missing dependency: $DEP"
+       DEPS_FAIL=$(($DEPS_FAIL + 1))
+    fi
+  done
+  if [[ "$DEPS_FAIL" > 0 ]]; then
+    # only warning when --ignore-dependencies is set.
+    if [[ "$IGNOREDEPENDENCIES" == "true" ]]; then
+      err "Ignoring missing dependencies (${DEPS_FAIL}), continue..."
+    else
+      err "Fix missing dependencies (${DEPS_FAIL})"
+      usage
+      exit 1
+    fi
+  fi
+}
+checkDependencies
+
+# Check input
+# clean input from trailing slash
+INPUTFILE="$(echo "$1" | sed 's#/*$##' )"
+# check if input exists
+if [ ! -f "$INPUTFILE" ] && [ ! -d "$INPUTFILE" ]; then
+  # no file or no directory
+  err "No file or folder found."
+  usage
+  exit 1
+fi
+
+# check if output folder exists
+if [ -d "$2" ]; then
+  OUTPUTDIR="$2"
+else
+  OUTPUTDIR="$(pwd)"
+fi
+
+# get size for `pv`
+SIZE="$(du -sk "$INPUTFILE" | cut -f 1)"
+
+# Output location
+OUTPUTFILE="$OUTPUTDIR"/"$(basename "$INPUTFILE")".tar.gz
+if [ -f "$OUTPUTFILE" ]; then
+  err "File already exists: "$OUTPUTFILE""
+  exit 1
+fi
+
+# start compression
+TARCOMMAND="tar cf - "$INPUTFILE" | pv -p -s ${SIZE}k | pigz $COMPRESSION > "$OUTPUTFILE""
+echo "$TARCOMMAND"
+tar cf - "$INPUTFILE" | pv -p -s ${SIZE}k | pigz $COMPRESSION > "$OUTPUTFILE" 
+
+# test if tar and pigz had succes
+TARGZRESULT=$?
+
+# create a checksum
+if [ $TARGZRESULT -eq 0 ]; then
+  SHASUM="Failed checksum."
+  SHASUM="$(pv "$OUTPUTFILE" | shasum  | awk '{print $1}')"
+  echo "SHA1 = $SHASUM"
+  mv -v "$OUTPUTFILE" "${OUTPUTFILE/\.tar\.gz/.SHA1-${SHASUM}.tar.gz}" && echo "Succes."
+else
+  echo "Failed."
+fi

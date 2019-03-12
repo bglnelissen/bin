@@ -1,0 +1,10 @@
+#!/bin/bash
+# Create a copy/backup of file.
+# b. nelissen
+
+# create backup of file
+if [ -f "$1" ]; then
+  cp "$1" "$1"."$(date +%Y%m%d%H%M)".bak
+else
+  echo "File expected as argument."
+fi

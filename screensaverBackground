@@ -1,0 +1,9 @@
+#!/bin/bash
+# Run screensaver as desktop background.
+# b.nelissen
+
+# http://cocoadev.com/wiki/ScreenSaverEngine
+
+/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background &
+echo "Screen saver is now running as background."
+echo "PID: $!"

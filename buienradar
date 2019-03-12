@@ -1,0 +1,41 @@
+#!/bin/bash
+# Creates a png that shows the current and the estimated rainfall in the Netherlands in 1 image.
+# b.nelissen
+
+# variables
+GIF=/tmp/buienradar.gif
+OUTPUTDIR=/Users/bas/Pictures/Buienradar
+PNG=/Users/bas/Pictures/Buienradar/Buienradar.png
+PNGtmp=/tmp/buienradartmp.png
+PNG1=/tmp/buienradar1.png
+PNG2=/tmp/buienradar2.png
+
+# create output folder
+mkdir -p $(dirname $PNG)
+
+# get image using the api
+# https://api.buienradar.nl/image/1.0/RadarMapNL?w=700&h=765
+curl "https://api.buienradar.nl/image/1.0/RadarMapNL" -o "$GIF"
+
+# get layers
+LAYER=$(echo "$(identify $GIF | wc -l) - 2" | bc) # last layer
+convert $GIF[0] $PNG1 # original
+# create clouds of the last image in the timelaps
+convert $GIF[$LAYER] -fuzz 35% -fill red +opaque white -transparent red -fill orange -opaque white $PNG2 # clouds only
+# todo make clouds layer a bit transparent
+
+# merge and save layers
+# convert $PNG1 $PNG2 -layers merge -fuzz 1% -transparent '#000186' -chop 120x0 -gravity south -chop 0x60 -gravity north -fill '#F6F541' -font Arial -pointsize 18 -annotate 0 "$(date '+%d %B %Y - %k:%M ')" $PNGtmp
+convert $PNG1 $PNG2 -layers merge -chop 120x0 -gravity south -chop 0x60 -gravity north -pointsize 18 -fill skyblue -annotate 0 "$(date '+%d %B %Y - %k:%M ')" $PNGtmp
+
+rm -rf $OUTPUTDIR/*
+cp $PNGtmp $PNG
+
+# cleanup
+rm $GIF
+rm $PNGtmp
+rm $PNG1
+rm $PNG2
+
+# view Result
+open $PNG

@@ -1,0 +1,147 @@
+#!/bin/bash
+# Convert md (markdown) to html.
+# b.nelissen
+
+#   <!DOCTYPE html>
+#   <html>
+#   <head>
+#     <meta charset="utf-8" />
+#     <title>HTML TITLE</title>
+#     <link rel="stylesheet" type="text/css" href="stylesheet.css"></head>
+#   </head>
+#   <body>
+
+# default CSS
+CSS="/Users/bas/ownCloud/Code/css/markdown-clean-small.css"
+
+# brew install markdown
+
+# Errors go to stderr
+err() {
+  echo "ERROR: $@" >&2
+}
+## debug echo
+debug() {
+  if true; then
+    echo "DEBUG: $@" >&2
+  fi
+}
+# Dependencies
+DEPENDENCIES=("file" "basename" "dirname" "markdown")
+checkDependencies(){
+  DEPS=""
+  DEPS_FAIL="0"
+  for DEP in ${DEPENDENCIES[@]}; do
+    if [[ 0 != "$(command -v "$DEP" >/dev/null ;echo "$?")" ]]; then
+       err "Missing dependency: $DEP"
+       DEPS_FAIL=$(($DEPS_FAIL + 1))
+    fi
+  done
+  if [[ "$DEPS_FAIL" > 0 ]]; then
+    err "Fix missing "$DEPS_FAIL" dependencie(s)"
+    exit 1
+  fi
+}
+checkDependencies
+
+# input file empty?
+if [ "" != "$1" ]; then
+  infiletmp="$1"
+  infile="$(echo "$(cd "$(dirname "$infiletmp")"; pwd)"/"$(basename "$infiletmp")")" # get full path of infiletmp
+  infilebasename="$(basename "$infile")"
+else
+  err "No input file given."
+  err "Usage: "$(basename "$0")" inputfile.md stylesheet.html"
+  exit
+fi
+debug "infile: $infile"
+
+# css file empty?
+if [ -f "$2" ]; then
+  stylesheettmp="$2"
+  stylesheet="$(echo "$(cd "$(dirname "$stylesheettmp")"; pwd)"/"$(basename "$stylesheettmp")")" # get full path of stylesheet
+  debug "stylesheet: $stylesheet"
+else
+  debug "Trying to use default stylesheet: "$CSS""
+  if [ -f "$CSS" ]; then
+    stylesheettmp="$CSS"
+    stylesheet="$(echo "$(cd "$(dirname "$stylesheettmp")"; pwd)"/"$(basename "$stylesheettmp")")" # get full path of stylesheet
+    debug "stylesheet: $stylesheet"
+  else
+    debug "Default stylesheet not found."
+  fi
+fi
+
+# variables (based on input)
+intype="$(file -b --mime-type "${infile}")"
+debug "intype: $intype"
+inenc="$(file -b --mime-encoding "${infile}")"
+debug "inenc: $inenc"
+inext="${infile##*.}"
+debug "inext: $inext"
+tmpfile="$(mktemp /tmp/"$(basename "$0")"_XXXXXX.html)"
+debug "tmpfile: $tmpfile"
+
+# Exit and cleanup
+set -e
+cleanUp(){
+  # remove temp files
+  rm -f "${tmpfile}"
+}
+trap cleanUp EXIT
+
+# check files
+if [ "${intype}" != "text/plain" ] ; then
+  err "mime type of input file must be 'text/plain' (not ${intype})"
+fi
+
+# output location
+if [ "${inext}" = "${infile}" ] ; then
+  outfile="${infile}".html
+else
+  outfile="${infile%.${inext}}".html
+fi
+debug "$outfile"
+
+# Create a new empty tmp file
+> "${tmpfile}"
+
+# Insert head
+echo "<!DOCTYPE html>" >> "${tmpfile}"
+echo "<html>" >> "${tmpfile}"
+echo "<head>" >> "${tmpfile}"
+echo "  <title>"${infilebasename%.${inext}}"</title>" >> "${tmpfile}"
+echo "  <meta charset=\"UTF-8\">" >> "${tmpfile}"
+
+# Stylesheet 
+if [ -f "$stylesheet" ] ; then
+  echo "  <link rel=\"stylesheet\" type=\"text/css\" href=\""${stylesheet}"\">" >> "${tmpfile}"
+else
+  debug "Using no stylesheet"
+fi
+
+# End head, start body
+echo "</head>" >> "${tmpfile}"
+echo "<body>" >> "${tmpfile}"
+
+# Content
+markdown "${infile}" >> "${tmpfile}"
+
+# End body, end html
+echo "</body>" >> "${tmpfile}"
+echo "</html>" >> "${tmpfile}"
+
+# HTML tmp to output
+mv -v "${tmpfile}" "${outfile}"
+
+# Verbose
+debug "infile: ""${infile}"
+debug "stylesheet: ""${stylesheet}"
+debug "tmpfile: ""${tmpfile}"
+debug "outfile: ${outfile}"
+
+# Cleanup
+rm -f "${tmpfile}" # is also done at cleanUp()
+
+# Preview
+open -a Safari "${outfile}"

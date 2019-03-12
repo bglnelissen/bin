@@ -1,0 +1,74 @@
+#!/bin/bash
+# It is possible to run multiple instances of dropbox. This script helps you to sync multiple dropboxes. Folders starting with '_' are excluded. It also contains code that makes it possible to store dropboxes in Sparse bundles.
+# b.nelissen
+
+# Start syncing multiple dropboxes.
+# Folders starting with '_' are excluded.
+
+# cloud directory
+CLOUDDIR="${HOME}/Cloud"
+
+# function to start drox
+function DropboxChild {
+	NAME="$1"
+	DROPBOXLOCATION="${CLOUDDIR}/${NAME}"
+	LOG="${DROPBOXLOCATION}/Dropbox/${NAME}.log.txt"
+	SPARSEBUNDLE="${DROPBOXLOCATION}/Dropbox/${NAME}.sparsebundle"
+	ARGS=""
+	
+	# Prepare
+	mkdir -p "${DROPBOXLOCATION}"
+    
+	# Check of dropbox exists
+	BIN="/Applications/Dropbox.app/Contents/MacOS/Dropbox"
+	if [ ! -f "${BIN}" ]; then
+	  echo "Dropbox not installed.";
+	  exit 1;
+	fi
+	
+	# edit log file to activate sync
+	if [ -d "${DROPBOXLOCATION}/Dropbox" ]; then
+		echo -e "$(hostname | sed 's/\..*//g')\n$(whoami)\n$(date)\n${NAME}\n${BIN}\n\n" >> $LOG
+	fi
+	
+	# execute dropbox on this location, output to the null device
+	echo "HOME=\"$DROPBOXLOCATION\"; \"$BIN\" > /dev/null 2>&1 &"
+	HOME="$DROPBOXLOCATION"; "$BIN" > /dev/null 2>&1 &
+	
+	# mount sparsebundle if available
+	# Not anymore. Use an alias to a dir within the image to automatically the disk
+# 	if [ -d $SPARSEBUNDLE ]; then
+# 	    hdiutil mount "${SPARSEBUNDLE}" -quiet
+# 	    HDIUTILEXIT=$?
+# 	    if [ $HDIUTILEXIT != 0 ]; then
+# 	        ARGS=" - (Mount error $HDIUTILEXIT ${NAME}.sparsebundle )"
+# 	    else
+# 	        ARGS=" - mounted ${NAME}.sparsebundle"
+# 	    fi
+# 	fi
+	
+	echo "$! $NAME $ARGS"
+}
+
+# kill tha running fuckers, silent but deadly
+for i in $(ps -ax | grep -i [d]ropbox\\.app | awk '{print $1}');do 
+    if [ "$$" != "$i" ];then
+        # we do not want to kill this script, right?
+        # kill silent
+        (kill $i 2>&1) >/dev/null
+    fi
+done
+
+# start the regular Dropbox
+open -a Dropbox
+
+# start all dorpboxes in the Dropboxes folder
+for dbname in $(ls "${CLOUDDIR}/${NAME}"); do
+  # do not start folders starting with a - in the filename.
+  pat='_.*$'
+  if [[ $dbname =~ $pat ]]; then
+    echo "Skipping $dbname"
+  else
+    DropboxChild "$dbname"
+  fi
+done

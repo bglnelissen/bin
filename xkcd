@@ -1,0 +1,20 @@
+#!/bin/bash
+# Get and store the latest `xkcd` commic.
+# b.nelissen
+
+# VARIABLES
+TMPFILE="$HOME/Pictures/Periodicals/xkcd.png"
+
+# REMOVE PREVIOUS VERSION
+rm -v "$TMPFILE"
+
+# xkcd variables
+XKCDHTML="$(curl http://xkcd.com)"
+XKCDIMGURL=$(echo "$XKCDHTML" |grep 'hotlinking/embedding' | sed 's/.*\:\ \(.*\)/\1/')
+XKCDCOMMENT=$(echo "$XKCDHTML" | grep '^<img\ src=\"http\:\/\/imgs\.xkcd\.com.*title=.*' | sed 's/.*\"\(http:\/\/.*\)\"\ title=\"\(.*\)\"\ alt.*/\2/')
+
+# download image
+curl -o $TMPFILE $XKCDIMGURL
+
+# add annotation
+convert "$TMPFILE" -background white -font "$HOME/Library/Fonts/xkcd.ttf" -pointsize 19 -gravity Center label:"\n$XKCDCOMMENT\n" -append -bordercolor White -border 4x4 -negate "$TMPFILE"

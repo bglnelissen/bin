@@ -1,0 +1,6 @@
+#!/bin/bash
+# Open man pages asif it is a PDF file.
+# b.nelissen
+# autumn 2010
+
+man -t "$1" | open -f -a preview

@@ -1,0 +1,103 @@
+#!/bin/bash
+# Play streaming radio from different sources.
+# b.nelissen
+
+# streams:
+# http://forum.iculture.nl/f22/media/f25/muziek-foto-and-video/24705-radio-luisteren-rechtstreekse-streaming-links.html
+# http://radio.nl/LiveRadio
+# http://www.hendrikjansen.nl/henk/streaming.html
+# http://www.listenlive.eu/netherlands.html
+
+clear
+
+if [ "" != "$1" ]; then
+
+  CHOICE="$1"
+
+else
+
+  echo "Choose your radio station:"
+  echo "[1] Radio 1 - De zender voor nieuws en sport"
+  echo "[2] Radio 2 - De muziek zegt alles"
+  echo "[3] 3FM - Serious Radio"
+  echo "[4] Radio 4 - Klassiek leeft op vier"
+  echo "[5] Radio 538 (werkt niet)"
+  
+  echo "[A] Arrow SubLime FM - Juice up!"
+  echo "[B] BNR - Business Nieuws Radio"
+  echo "[C] Arrow Caz"
+  echo "[D] Deep FM"
+  echo "[F] FunX - Urban muziek"
+  echo "[H] Hard Dance - DIGITALLY IMPORTED - are you ready for this!"
+  echo "[L] Soundcloud, shuffle local files [soundcloud_curl.sh]"
+  echo "[N] Chroma Nature"
+  echo "[S] Sky Radio"
+  echo "[V] Radio Veronica"
+  echo "[X] Sky Radio Christmas"
+  echo "[Q] Q-music - Maximum Hit Music"
+  
+  read -n 1 CHOICE
+
+fi
+
+clear
+
+case $CHOICE in
+  [1])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://icecast.omroep.nl/radio1-bb-mp3
+    ;;
+  [2])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://icecast.omroep.nl/radio2-bb-mp3
+    ;;
+  [3])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://icecast.omroep.nl/3fm-bb-mp3
+    ;;
+  [4])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://icecast.omroep.nl/radio4-bb-mp3
+    ;;
+  [5])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://82.201.100.9:8000/radio538.m3u
+    ;;
+  [a,A])
+    mplayer -volume 15 -cache 8192 -cache-min 1  mmsh://81.23.251.55/ArrowAudio01
+    ;;
+  [b,B])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://81.173.3.251:80
+    ;;
+  [c,C])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://81.173.3.139:80
+    ;;
+  [d,D])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://play.deep.fm/deepfm.pls
+    ;;
+  [f,F])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://icecast.omroep.nl/funx-bb-mp3
+    ;;
+  [h,H])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://pub4.di.fm:80/di_harddance
+    ;;
+  [l,L])
+    while [ 1 ];do mplayer -quiet -volume 15 -cache 8192 -cache-min 10 "$(ls ~/Music/Local/*$2*|gsort -R|head -n1)";done
+    ;;
+  [n,N])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://176.9.22.6:8134
+    ;;
+  [s,S])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://8573.live.streamtheworld.com:443/SKYRADIOAAC_SC
+    ;;
+  [v,V])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://8633.live.streamtheworld.com:80/VERONICAAAC_SC
+    ;;
+  [x,X])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://8543.live.streamtheworld.com:80/SEASONALAAC_SC
+    ;;
+  [q,Q])
+    mplayer -volume 15 -cache 8192 -cache-min 1  http://vip2.str.reasonnet.com/qmusic.mp3.96
+    ;;
+      *)
+          echo "No valid choice. Exit."
+          exit
+    ;;
+esac
+
+exit

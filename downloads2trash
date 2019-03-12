@@ -1,0 +1,7 @@
+#!/bin/bash
+# Move contents of downloads folder to trash.
+# b.nelissen
+
+# (I want a clean downloads folder every time I login)
+
+mv -v ~/Downloads/* ~/.Trash/

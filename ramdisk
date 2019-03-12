@@ -1,0 +1,6 @@
+#!/bin/bash
+# Create a RAM disk for fast IO.
+# b.nelissen
+
+echo "Creating 4GB RAM disk"
+diskutil erasevolume HFS+ 'RAM Disk Bas' $(hdiutil attach -nomount ram://8388608)

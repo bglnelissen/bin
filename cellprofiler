@@ -1,0 +1,5 @@
+#!/bin/bash
+# Run cellprofiler from the commandline, with arguments when needed. This should be an alias in ~/.bash_profile
+# b.nelissen
+
+/Applications/CellProfiler.app/Contents/MacOS/CellProfiler "$@"

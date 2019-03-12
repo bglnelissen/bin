@@ -1,0 +1,21 @@
+#!/bin/bash
+# Mount specific smb network drive.
+# b.nelissen
+
+# Check if disk is already mounted
+if [ $(mount | grep "Mammoth" | awk '{print $1}') ]; then
+    # DISK IS MOUNTED, OPEN FOLDER
+    echo "Already mounted Mammoth"
+else
+    # DISK IS NOT MOUNTED, MOUNT HER
+    /usr/bin/osascript -e 'open location "smb://bnelisse@cfsdit02.ds.umcutrecht.nl/dhl_ec/Mammoth"'
+
+    if [ $? -eq 0 ]; then
+        # DISK IS MOUNTED, OPEN FOLDER
+        echo "Fresh mounted Mammoth"
+    else    
+        # mount was not succesful
+        echo "Could not mount Mammoth"
+        exit 1
+    fi
+fi

@@ -1,0 +1,29 @@
+#!/bin/bash
+# Use the pushover.net API to send push messages via CLI.
+# b.nelissen
+
+# Pushover messages, get API tokens and set icons etc on pushover.net
+# https://pushover.net/api
+APITOKEN="mELCOx6xNg2uPO6J8O3LqbQXAUfG7P" # Mini
+USERKEY="g8FE6fYxkcAYCdQUgts89CA1eo5CM7"
+
+if [ -n "$1" ]; then
+  MESSAGE="$@"
+  if [ "${#1}" == "${#APITOKEN}" ]; then
+    # first variable should be treated as a token
+    # replace token, remove token from original message
+    APITOKEN="$1"
+    shift
+    MESSAGE="$@"
+  fi
+  echo "$MESSAGE"
+  if [ -n "$MESSAGE" ]; then
+    # PushOver
+    curl --silent -F "token=""$APITOKEN""" -F "user=""$USERKEY""" -F "message="$MESSAGE"" https://api.pushover.net/1/messages.json > /dev/null # ignore output
+    exit 0
+  fi
+fi
+echo "Use as $(basename $0) 'message to send'"
+echo "or"
+echo "Use as $(basename $0) [API-TOKEN] 'message to send'"
+exit

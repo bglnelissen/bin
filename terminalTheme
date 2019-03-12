@@ -1,0 +1,6 @@
+#!/bin/bash
+# Change terminal theme to 'home'.
+# b.nelissen
+
+echo 'osascript -e "tell application \"Terminal\" to set current settings of window 1 to settings set \"home\""'
+osascript -e "tell application \"Terminal\" to set current settings of window 1 to settings set \"home\""

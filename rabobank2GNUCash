@@ -1,0 +1,119 @@
+#!/bin/bash
+# Change txt from rabobank to home banking valid csv files.
+# B.Nelissen
+
+
+# Rabobank formaat:
+# 1. from account
+# 2. valuta, date (ISO)
+# 3. Debet or Credit
+# 4. amount
+# 5. to account
+# 6. description
+# 7. interest date
+# 8. type of payment (transfer, authorization, ...)
+# 9. ...
+# 10-19. additional information
+
+# notes GNU Cash
+# https://www.youtube.com/watch?v=aqAaScYVeRQ
+# Basic accounting rules group all finance related things into 5 fundamental types of “accounts”. That is, everything that accounting deals with can be placed into one of these 5 accounts:
+# 
+# Assets - Things you own
+# Liabilities - Things you owe
+# Equity - Overall net worth (dus Assets - Liabilities = Equity)
+# Income - Increases the value of your accounts
+# Expenses - Decreases the value of your accounts
+# 
+# It is clear that it is possible to categorize your financial world into these 5 groups. For example, the cash in your bank account is an asset, your mortgage is a liability, your paycheck is income, and the cost of dinner last night is an expense.
+
+# double entry bookkeeping: multiple ways to look at your account, waar het geld vandaan is gekomen en waar het naar toe is gegaan.
+
+# get input
+INPUT="$1"
+
+# Check input string for length
+while [ ! -f "$INPUT" ]; do
+	echo "Give me a file ('transactions.txt')?:"
+	read INPUT
+done
+
+# set variables
+FILE="$INPUT"
+# path variables
+FILEFULL="$(echo "$(cd "$(dirname "$FILE")"; pwd)"/"$(basename "$FILE")")" # full path $FULL
+BASENAME="$(basename "$FILEFULL")"    # basename
+DIRNAME="$(dirname "$FILEFULL")"      # dirname
+EXTENSION="${BASENAME##*.}"           # extension
+FILEPATH="${FILEFULL%.*}"             # full path, no extension
+FILENAME="${BASENAME%.*}"             # filename, no extension
+FILEOUTPUT="$FILEPATH"".GNU Cash.csv"
+echo "input: $FILEFULL"
+echo "output: $FILEOUTPUT" 
+
+# check if output already exists
+if [ -f "$FILEOUTPUT" ]; then	
+  echo "Output location already exists: $FILEOUTPUT"
+  echo "exit"
+  exit
+fi
+
+if [ -f "$INPUT" ]; then
+  # it can take a while for big files, make a countdown timer
+  NLINES="$(wc -l "$INPUT"| awk '{print $1}')"
+  while read -r LINE; do
+
+    # remove \r carriage returns (WHICH CUNT *$&!)
+    LINE="$(echo "$LINE" |sed "s/$(printf '\r')\$//")"
+
+    # mutatiesoorten (https://nl.wikipedia.org/wiki/Rekeningafschrift)
+    LINE="$(echo "$LINE" | sed 's/,"ac",/,"acceptgiro",/; s/,"ba",/,"betaalautomaat",/; s/,"bc",/,"betalen contactloos",/; s/,"bg",/,"bankgiro opdracht",/; s/,"cb",/,"crediteurenbetaling",/; s/,"ck",/,"Chipknip",/; s/,"db",/,"diverse boekingen",/; s/,"eb",/,"bedrijven Euro-incasso",/; s/,"ei",/,"euro-incasso",/; s/,"ga",/,"geldautomaat Euro",/; s/,"gb",/,"geldautomaat VV",/; s/,"id",/,"iDEAL",/; s/,"kh",/,"kashandeling",/; s/,"ma",/,"machtiging",/; s/,"nb",/,"NotaBox",/; s/,"sb",/,"salaris betaling",/; s/,"sp",/,"spoedopdracht",/; s/,"tb",/,"eigen rekening",/; s/,"tg",/,"telegiro",/' )"
+        
+    # awk selecteert de waarde en voegt eventueel tabellen samen
+    # Date
+    # Num (Here you can enter a check or transaction number)
+    # Description (This field is used to enter either a payee or other description for the transaction)
+    # Notes 
+    # Account
+    # Deposit
+    # Withdrawal
+    # Balance
+    
+    # Split debit/credit and its value in 2 columns
+    DC="$(echo "$LINE" | awk  -F, '{print $4}' | sed 's/\"//g')" # D or C, debit or credit?
+    AMOUNT="$(echo "$LINE" | awk  -F, '{print $5}' | sed 's/\"//g')" # D or C, debit or credit?
+    case "$DC" in
+        D)
+            DEBIT="$AMOUNT"
+            CREDIT=""
+            ;;
+        C)
+            DEBIT=""
+            CREDIT="$AMOUNT"
+            ;;
+        *)
+          echo "Error in het vinden van Debit/Credit"
+          exit 1
+    esac
+    
+    # awk selecteert de waarde en voegt eventueel tabellen samen
+    # Descriptions can be found most precise in column 6, 7, 11, strip quotes and strip abundant spaces
+    DATE="$(echo "$LINE" | awk  -F, '{print $3}' | sed 's/^ *//;s/ *$//; s/\"//g')"
+    NUM=""
+    DESCRIPTION=$( echo "$(echo "$LINE" | awk  -F, '{print $10" "$11" "$12" "$13" "$14" "$15" "$16" "$17" "$18" "$19}')" | sed 's/\"//g; s/^ *//;s/ *$//; s/ \+/ /g')
+    NOTES="$(echo "$LINE" | awk  -F, '{print $1}' | sed 's/^ *//;s/ *$//; s/\"//g')"
+    ACCOUNT="$(echo "$LINE" | awk  -F, '{print $6" "$7}' | sed 's/\"//g; s/^ *//;s/ *$//; s/ +/ /g')"
+    NOTES="$(echo "$LINE" | awk  -F, '{print $1}' | sed 's/^ *//;s/ *$//; s/\"//g')"
+    DEPOSIT="$CREDIT"
+    WITHDRAWAL="$DEBIT"
+
+    # combine to csv
+    OUTPUT="\""$DATE"\",\""$NUM"\",\""$DESCRIPTION"\",\""$NOTES"\",\""$ACCOUNT"\",\""$DEPOSIT"\",\""$WITHDRAWAL"\""
+		
+		# Countdown timer
+    printf "$NLINES \r"; NLINES=$(( $NLINES -1 ))
+    
+    # Create output
+    echo "$OUTPUT" >> "$FILEOUTPUT"
+  done < "$INPUT"
+fi

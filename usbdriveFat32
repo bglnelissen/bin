@@ -1,0 +1,8 @@
+#!/bin/bash
+# Format USB drives to the FAT32 format, needed for most older Windows machines.
+# b.nelissen
+
+sudo date && diskutil list && \
+read -p "Enter the disk NUMBER you want to format to FAT32 and press [ENTER]: " DISK && \
+diskutil unmountDisk /dev/disk${DISK} && \
+sudo diskutil eraseDisk FAT32 UNTITLED MBRFormat /dev/disk${DISK}

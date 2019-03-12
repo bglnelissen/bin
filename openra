@@ -1,0 +1,19 @@
+#!/bin/bash
+# Start openra in specific resolution and bypass the system resolution.
+# b.nelissen
+
+# list valid modes using cscreen -v
+
+# cscreen -d 32 -x 1650 -y 1050 
+# cscreen -d 32 -x 1280 -y 800 
+# cscreen -d 32 -x 2048 -y 1280
+
+# Display
+DisplayID=4280600
+xA=2048
+yA=1280
+echo "Setting: x:${xA} y:${yA} on display: $DisplayID"
+cscreen -m -i "$DisplayID" -x "${xA}" -y "${yA}"
+
+# Start OpenRA
+open -a "OpenRA.app"

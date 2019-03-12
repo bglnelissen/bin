@@ -1,0 +1,26 @@
+#!/bin/bash
+# Copy Finder tag properties from one file to another.
+# b.nelissen
+
+# debug
+echo "0: $0"
+echo "1: $1"
+echo "2: $2"
+
+# if the second input is empty, than copy the script properties to the first input
+if [[ -e "$0"  ]] && [[ -e "$1"  ]] && [[ -z "$2" ]]; then
+  TAGS_FROM="$0"
+  TAGS_TO="$1"
+# if the first and the second input are not empty, copy properties from the first to the second
+elif [[ -e "$INPUT_1" ]] && [[ -e "$INPUT_2" ]]; then
+  TAGS_FROM="$1"
+  TAGS_TO="$2"
+else
+  echo "Unexpected input, usage:"
+  echo "$(basename "$0") /path/to/original /path/to/copy"
+  exit 1
+fi
+
+# TAGS FROM and TAGS TO are found, do it.
+xattr -wx com.apple.metadata:_kMDItemUserTags "$(xattr -px com.apple.metadata:_kMDItemUserTags "$TAGS_FROM")" "$TAGS_TO"
+xattr -wx com.apple.FinderInfo "$(xattr -px com.apple.FinderInfo "$TAGS_FROM")" "$TAGS_TO"

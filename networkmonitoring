@@ -1,0 +1,124 @@
+#!/bin/bash
+# Created for Raspberry Pi. I always forget my network monitoring tools, this script provides a list and a description.
+# b. nelissen
+
+clear
+
+# get input
+INPUTSTRING="$1"
+
+# Check input string if empty
+while [ -z "${INPUTSTRING}" ]; do
+  echo "Network interfaces ("$(hostname)"):"
+  netstat -r |  tail -n +3 | awk '{print $8 " " $1}'
+  echo
+  echo "Which tool to run?"
+  echo " 1. bmon                Bandwidth monitor and rate estimator"
+  echo " 2. cbm              ~  Color Bandwidth Meter"
+  echo " 3. darkstat       *+   A packet sniffer that runs in the background serves results over HTTP"
+  echo " 4. geoip          *    Finds the geographic location of an ip address"
+  echo " 5. iftop           +   Display bandwidth usage on an interface by host"
+  echo " 6. ip             *    Show / manipulate routing, devices, policy routing and tunnels"
+  echo " 7. iptraf          +~  Interactive Colorful IP LAN Monitor"
+  echo " 8. lastb           +   Show listing of last logged in users"
+  echo " 9. nethogs         +   Net top tool grouping bandwidth per process (does not work properly)"
+  echo "10. ngrep          *+   Network grep"
+  echo "11. nload               Displays the current network usage"
+  echo "12. netstat        *    Print  network connections, routing tables, interface statistics, etc"
+  echo "13. ntop           *    Shows the current network usage over HTTP. 'http://10.0.0.100:3000'"
+  echo "14. slurm          * ~  Yet another network load monitor"
+  echo "15. speedtest-cli       Test your bandwidth througput using speedtest.net"    
+  echo "16. tcptrack       *+   Monitor TCP connections on the network"
+  echo "17. vnstat           ~  Console-based network traffic monitor. Shows data and exits."
+  echo
+  echo "Column codes:"
+  echo "* Run directly, not from within this script"
+  echo "+ Root privileges needed"
+  echo "~ Useful for easy VPN monitoring"
+  echo
+  echo "Most tools are better to run directly with the correct options."
+	echo "Which tool to run?:"
+	read INPUTSTRING
+done
+
+case "$INPUTSTRING" in
+
+	bmon|1)
+		bmon
+		;;
+
+	cbm|2)
+		cbm
+		;;
+
+	darkstat|3)
+		echo "Run directly, example: 'sudo darkstat -i eth0 -p 81' and point your browser to http://10.0.0.100:81"
+		;;
+
+	geoip|4)
+		echo "Run directly, example: 'geoiplookup 110.110.110.110'"
+		;;
+		
+	iftop|5)
+		sudo iftop
+		;;
+		
+	ip|6)
+		echo "Run directly, example: 'ip link show'"
+	  ;;
+	  
+	iptraf|7)
+		sudo iptraf
+		;;
+	
+	lastb|8)
+		lastb -a
+    ;;
+    
+	nethogs|9)
+		sudo nethogs
+		;;
+	
+	ngrep|10)
+	  echo "Run directly, example: 'ngrep [g]oogle '"
+		;;
+		
+	nload|11)
+		nload
+		;;
+	
+	netstat|12)
+		echo "Run directly, example: 'netstat -i'"
+		;;
+		
+	ntop|13)
+		echo "Run directly. Point your browser to http://10.0.0.100:3000"
+		;;
+		
+	slurm|14)
+		echo "Run directly, example: 'slurm -i tun0'"
+		;;
+		
+	speedtest-cli|15)
+	  speedtest-cli
+		;;
+		
+	tcptrack|16)
+		echo "Run directly, example: 'sudo tcptrack -i eth0'"
+		;;
+		
+	vnstat|17)
+		vnstat
+		;;
+		
+	q|Q|quit|QUIT)
+		echo "Quitting..."
+		exit
+		;;
+
+	*)
+		echo "No valid option. Exit."
+		exit
+		;;
+		
+esac

@@ -1,0 +1,26 @@
+#!/bin/bash
+# Get the current OR schedule and save it as PNG.
+# b.nelissen
+
+# Remove previous trash
+rm -rf "/tmp/Schipholbord.tmp."*
+
+# Cookie with settings for OKVIEW
+OKVIEW="chokF4_1=True&chokF2=False&chokWKZ=False&chSedatie=False&chBlokhut=False"
+# SET VARIABLES # "$(date +%F\.%H%M%S)"
+TMP_PDF="/tmp/Schipholbord.tmp."$(date +%F\.%H%M%S)".pdf"
+TMP_PNG="/tmp/Schipholbord.tmp."$(date +%F\.%H%M%S)".png"
+TMP_PNG_FIXED="/tmp/Schipholbord.png"
+
+# GET WEBSITE with wkhtmltopdf and convert
+# wkhtmltopdf --quiet --cookie okview "$OKVIEW" -s A3 --orientation Portrait http://ok.umcutrecht.nl/okverloop/showpage.aspx "$TMP_PDF";
+# convert  -quality 100 -density 400 -gravity south -chop 0x3150 -gravity north -chop 0x300 -transparent white -negate "$TMP_PDF" "$TMP_PNG";
+
+# GET WEBSITE with wkpdf and convert
+wkpdf -p A3 -s http://ok.umcutrecht.nl/okverloop/showpage.aspx -o "$TMP_PDF"
+convert -quality 100 -density 400 -trim +repage -gravity North -crop +0+100 +repage -crop +0-100 +repage -transparent white -negate "$TMP_PDF" "$TMP_PNG"; # crop +left+top, crop -right-bottom. repage is needed after each crop.
+
+# Create fixed version and open
+cp $TMP_PNG $TMP_PNG_FIXED
+rm -rf "$TMP_PNG" "$TMP_PDF"
+open "$TMP_PNG_FIXED"

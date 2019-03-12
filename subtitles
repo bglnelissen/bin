@@ -1,0 +1,19 @@
+#!/bin/bash
+# Subtitle downloader using the file bytes size, download from opensubtitles.org
+# b.nelissen
+
+# http://www.opensubtitles.org/en/search/sublanguageid-eng/searchonlytvseries-on/moviebytesize-1349241928
+# http://www.opensubtitles.org/en/search/sublanguageid-eng/searchonlytvseries-on/moviebytesize-1349241928/subformat-srt
+
+function fileToURL {
+  BYTES="$(wc -c "$1" | awk '{print $1}' | sed 's/[^0-9]*//g')"
+  printf "http://www.opensubtitles.org/en/search/sublanguageid-eng/searchonlytvseries-on/moviebytesize-"${BYTES}"/subformat-srt"
+}
+
+echo "Movies found:"
+echo
+
+find . -type f \( -name "*.mkv" -o  -name "*.avi" -o -name "*.m4v" \) | \
+    while read file
+      do echo "- [${file}]""(""$(fileToURL "$file")"")"
+    done

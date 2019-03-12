@@ -1,0 +1,80 @@
+#!/bin/bash
+# Returns a list all emails in your inbox, slightly formatted.
+# b.nelissen
+
+# list unread mails using applescript
+UNREAD=$(osascript -e '
+set newline to ASCII character 10
+set finalText to newline
+set previousRowMsg to ""
+tell application "Mail"
+	-- check for unread mail
+	set newMessages to (every message in inbox whose read status is false)
+	if the (count of newMessages) is greater than or equal to 1 then
+		set n to (count of newMessages)
+		repeat with i from 1 to number of items in newMessages
+			set thisMessage to item i of newMessages
+			set fromMsg to (sender of thisMessage as string)
+			set subjMsg to (subject of thisMessage as string)
+			set rowMsg to word 1 of fromMsg & ": " & subjMsg
+			-- fix duplicate output.
+			if rowMsg is not equal to previousRowMsg then
+				set finalText to finalText & rowMsg & newline
+			end if
+			set previousRowMsg to rowMsg
+		end repeat
+	end if
+end tell
+finalText
+')
+
+# list flagged mails using applescript
+FLAGGED=$(osascript -e '
+set newline to ASCII character 10
+set finalText to newline
+set previousRowMsg to ""
+set flag to ""
+tell application "Mail"
+	-- check for flagged mail
+	set flaggedMessages to (every message in inbox whose flagged status is true)
+	if the (count of flaggedMessages) is greater than or equal to 1 then
+		set n to (count of flaggedMessages)
+		repeat with i from 1 to number of items in flaggedMessages
+			set thisMessage to item i of flaggedMessages
+		    set flag to flag index of thisMessage
+			set fromMsg to (sender of thisMessage as string)
+			set subjMsg to (subject of thisMessage as string)
+			set rowMsg to word 1 of fromMsg & ": " & subjMsg
+			-- fix duplicate output.
+			if rowMsg is not equal to previousRowMsg then
+			    -- add this mail to previous ones and add a dot (needed for sed to make colours)
+				set finalText to finalText & flag & rowMsg & "." & newline
+			end if
+			set previousRowMsg to rowMsg
+		end repeat
+	end if
+end tell
+finalText
+')
+
+# Color codes for each flag. Codes [0-6] are defined by Mail
+esc=`echo -en "\033"` # escape code
+# Set colors
+cc_0="${esc}[0;31m" # red AND grey
+cc_1="${esc}[0;36m" # orange
+cc_2="${esc}[0;33m" # yellow
+cc_3="${esc}[0;32m" # green
+cc_4="${esc}[0;34m" # blue
+cc_5="${esc}[0;35m" # purple
+
+# Present mail
+if [ "$UNREAD" != "" ]; then
+    echo -e "New emails to read:""$UNREAD"
+fi
+if [ "$UNREAD" == "" ] && [ "$UNREAD" == "" ]; then
+    echo "No new emails, you're all done."
+fi
+# flagged mail
+if [ "$FLAGGED" != "" ]; then
+    echo -e "Flagged emails to take care of:""\033[0m""$FLAGGED" | sed 's/^[0]/'$(echo $cc_0)'/g;s/^[1]/'$(echo $cc_1)'/g;s/^[2]/'$(echo $cc_2)'/g;s/^[3]/'$(echo $cc_3)'/g;s/^[4]/'$(echo $cc_4)'/g;s/^[5]/'$(echo $cc_5)'/g;s/^[6]/'$(echo $cc_6)'/g;s/\.$/'$(echo -e "\033[0m")'/g' 
+fi

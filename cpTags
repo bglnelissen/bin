@@ -1,0 +1,15 @@
+#!/bin/bash
+# Finder tags ("Red", "Orange", "Yellow", ...) can be copied from one file/folder the the next. This script helps you do so.
+# b. nelissen
+
+TAGS_FROM="$1"
+TAGS_TO="$2"
+
+if [[ -e "$TAGS_FROM" ]] && [[ -e "$TAGS_TO" ]]; then
+  xattr -wx com.apple.metadata:_kMDItemUserTags "$(xattr -px com.apple.metadata:_kMDItemUserTags "$TAGS_FROM")" "$TAGS_TO"
+  xattr -wx com.apple.FinderInfo "$(xattr -px com.apple.FinderInfo "$TAGS_FROM")" "$TAGS_TO"
+else
+  echo "Unexpected input, usage:"
+  echo "$(basename "$0") /path/to/original /path/to/copy"
+  exit 1
+fi

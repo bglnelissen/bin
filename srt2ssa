@@ -1,0 +1,46 @@
+#!/bin/bash
+# Convert `srt` files to the `ssa` format. `ssa` files are subtitle files that can be burned in by handbrake.
+# b.nelissen
+
+# USAGE
+# ./srt2ssa.sh < your_subtitle_file.srt > your_subtitles_file.ssa
+
+# ssa files are subtitle files that can be burned in by handbrake
+# use: mplayer your_video.avi -ssa -sub output.ssa
+
+# check for srt file, convert to lower string
+fullfile=`echo $1 | tr '[:upper:]' '[:lower:]'`
+# create variables
+fullfile=$(basename "$fullfile")
+extension="${fullfile##*.}"
+filename="${fullfile%.*}"
+output="$(dirname "$1")""/""$filename"".ssa"
+
+if [ $extension != "srt" ];
+then
+    echo "No srt file found!"
+    exit
+else
+  echo "Collisions: Normal" > "$output"
+  echo "PlayResX: 200" >> "$output"
+  echo "PlayResY: 200" >> "$output"
+  echo "PlayDepth: 0" >> "$output"
+  echo "Timer: 100,0000" >> "$output"
+  echo "Video Aspect Ratio: 0" >> "$output"
+  echo "Video Zoom: 6" >> "$output"
+  echo "Video Position: 0" >> "$output"
+  echo "" >> "$output"
+  echo "[V4+ Styles]" >> "$output"
+  echo "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding" >> "$output"
+  echo "" >> "$output"
+  echo "Style: MyStyle, DejaVu Sans Bold,28,&H00B4FCFC,&H00FF0000,&H000000FF,&H8000FF00,-1,0,0,0,100,100,0.00,0.00,1,1.00,2.00,1,30,30,30,0" >> "$output"
+  echo "" >> "$output"
+  echo "" >> "$output"
+  echo "[Events]" >> "$output"
+  echo "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text" >> "$output"
+  echo "" >> "$output"
+  # multiple seds 
+  cat "$1" | sed "s/^[0-9]*$//g" | sed s/\ --\>\ /,/g | sed "s/\([0-9][0-9]\),\([0-9][0-9][0-9]\)/\1.\2/g" | \
+  sed "s/\([0-9].*[0-9]\)/Dialogue: 1,\0,MyStyle,NTP,0000,0000,0000,,/g" | tr -d "\n" | sed "s/Dialogue/\n\0/g" | \
+  sed "s/\(,\)[0-9]\([0-9]:\)/\1\2/g" >> "$output"
+fi

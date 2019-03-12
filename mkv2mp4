@@ -1,0 +1,37 @@
+#!/bin/bash
+# Demux MKV to playstation ready mp4, only audio is converted, video stays mp4. Hardcode subtitles if needed.
+# b.nelissen
+
+if [[ "$1" == "" ]]; then
+	# no arguments set, display help info
+	echo "Conversion tool for mkv to mp4 (PS3 ready)"
+	echo "Usage:"
+	echo "$(basename $0) file.mkv [dut]"
+	echo "language [dut] [eng] [etc] is optional"
+	echo
+	echo "Subtitle info: \"$(basename $0) file.mkv info\" for available subtitles"
+	echo
+	exit
+elif [[ -f "$1" && "mkv" == "${1##*.}" && $(echo "$2" | tr '[:upper:]' '[:lower:]') == "info" ]]; then
+	# file exists, is mkv and we need info
+	mplayer -identify -frames 0 "$1" 2>/dev/null| grep "subtitle (text)"
+	exit
+elif [[ -f "$1" && "mkv" == "${1##*.}" ]]; then
+	# file exists, is mkv and we demux  .mkv to .mp4
+	# Local variables
+	OUTPUTEXTENSION=".mp4"
+	FILENAME="${1%\.*}" # filename without extension
+	OUTPUTFILE="$FILENAME""$OUTPUTEXTENSION"
+	
+	if [[ "0" != $(mplayer  -identify -frames 0 Love_Actually.mkv 2>/dev/null | grep "subtitle (text)" | grep "$2" | wc -l | awk {'print $1'}) ]]; then
+		# subtitle is found
+		ARGS="-slang $2"
+	else
+		echo "No subtitles set or found: $2"
+		exit 1
+	fi
+	# we use mencoder. http://ubuntuforums.org/showthread.php?t=1155877
+	# mencoder movie.avi -sub movie.srt -o movie.hardsubs.avi -oac copy -ovc lavc -lavcopts vbitrate=1200
+	echo "mencoder "$1" "$ARGS" -ovc copy -oac copy -o "$OUTPUTFILE""
+fi
+

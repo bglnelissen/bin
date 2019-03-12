@@ -1,0 +1,32 @@
+#!/bin/bash
+# Start a call via terminal using facetime.
+# b. nelissen
+
+# get input
+INPUTSTRING="$1"
+
+# Check input string for length (at least 9 characters)
+while [ "${#INPUTSTRING}" -le 9 ]; do
+	echo "Enter a valid Apple-ID or phone-number:"
+	read INPUTSTRING
+done
+
+# We expect a valid APPLEID from here on.
+APPLEID="$INPUTSTRING"
+
+# start app
+open "facetime://""$APPLEID" && sleep 2
+
+# succes?
+if [ $? -eq 0 ]; then
+	# use applescript to press enter
+	osascript -e	tell	application "System Events" to tell process "FaceTime"
+	osascript -e		click menu item "Connect" of menu "Connections" of menu bar 1
+	osascript -e		click button "Connect" of window 1 of window 1
+	osascript -e	end tell
+	# osascript -e 'tell application "System Events" to key code 36' /* return-key */
+else
+	echo "Could not start facetime"
+	echo "Exit"
+	exit
+fi

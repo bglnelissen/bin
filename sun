@@ -1,0 +1,114 @@
+#!/bin/bash
+# Sun up? Sun down?
+# b.nelissen
+
+
+# UTRECHT
+LAT="52.092876"
+LNG="5.104480"
+
+# create empty RESULTS array
+# fill the RESULTS array with site data
+# strip starting and trailing spaces
+RESULTS=()
+IFS=',' read -r -a RESULTS <<< "$(curl -s "https://api.sunrise-sunset.org/json?lat=${LAT}&lng=${LNG}&date=today" |\
+perl -pe 's/^.*{//g' | perl -pe 's/}.*$//g' )"
+
+# add the current date/time
+# RESULTS+=("\"now\":\"$(date +"%r" )\"")
+
+# date --date='06/12/2012 07:21:22' +"%s"
+# convert to epoch date --date='5:24:45 AM' +"%s
+
+debugResults(){
+  # we have an ARRAY
+  for i in "${RESULTS[@]}"
+  do
+      echo "$i"
+      EPOCHSECS="$(date --date="$(echo "$i" | awk -F'":"' '{print $2}' | sed 's/"//g')" +"%s")"
+      NOW="$(date +"%s")"
+      echo $EPOCHSECS
+      echo $NOW
+      TIMEDIFFERENCE=$(($NOW-$EPOCHSECS))
+      echo $TIMEDIFFERENCE
+  done
+}
+
+# help message
+helpMessage() {
+cat <<- EOF
+${SCRIPTNAME}
+HELP!
+
+EOF
+}
+# illegal option
+illegalOption() {
+cat <<- EOF
+illegal option $1
+EOF
+exit 1
+}
+
+sunrise(){
+  # return 1 if sun is up
+  # we have an ARRAY
+for i in "${RESULTS[@]}"
+do
+  if [[ $i = *sunrise* ]] ; then
+    EPOCHSECS="$(date --date="$(echo "$i" | awk -F'":"' '{print $2}' | sed 's/"//g')" +"%s")"
+    NOW="$(date +"%s")"
+    TIMEDIFFERENCE=$(($NOW-$EPOCHSECS))
+    if [ "$TIMEDIFFERENCE" -gt 0 ]; then
+      printf true; exit 0
+    else
+      printf false; exit 0
+    fi
+  fi
+done
+}
+
+sunset(){
+  # return 1 if sun is down
+for i in "${RESULTS[@]}"
+do
+  if [[ $i = *sunset* ]] ; then
+    EPOCHSECS="$(date --date="$(echo "$i" | awk -F'":"' '{print $2}' | sed 's/"//g')" +"%s")"
+    NOW="$(date +"%s")"
+    TIMEDIFFERENCE=$(($NOW-$EPOCHSECS))
+    if [ "$TIMEDIFFERENCE" -lt 0 ]; then
+      printf true; exit 0
+    else
+      printf false; exit 0
+    fi
+  fi
+done
+}
+
+# debug
+# debugResults
+
+# set default value
+if [ -z "$1" ]; then
+  sunrise
+else
+  # loop through options
+  while :
+  do
+    case $1 in
+      op | up | rise | --up | --rise | --sunrise | --sunup | --light)
+        sunrise
+        shift 1 ;;
+      onder | down | set | --set | --down | --sunset | --sundown | --dark)
+        sunset
+        shift 1 ;;
+      -*)
+        illegalOption "$1"
+        shift ;;
+      *)  # no more options. Stop while loop
+        break ;;
+    esac
+  done
+fi
+
+

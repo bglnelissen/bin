@@ -1,0 +1,101 @@
+#!/bin/bash
+# This script automates my `git add`, `git commit`, `git push`, etc.
+# b. nelissen
+
+# example: find . -name "git.sh" -exec {} "update script"  \;
+
+# memo:
+# add the dir on the server: ~/git/project.git
+# add the server as a remote: git remote add pi "bas@guu.st:git/project.git"
+# do the first commit manually: git add . ; git commit -a -m "initial commit" ; git push pi master
+
+# set file variables
+CURRENTDIR="$(pwd)""/."
+FILEFULL="$(echo "$(cd "$(dirname "$CURRENTDIR")"; pwd)"/"$(basename "$CURRENTDIR")")" # full path $FULL
+DIRNAME="$(dirname "$FILEFULL")"      # dirname
+GITDIR="$DIRNAME""/.git"
+
+# GITREMOTE="pi"
+
+# start
+clear
+echo "Running from: ""$FILEFULL"
+
+# check if .git folder exists: not .git, no repo.
+echo; echo "Listing git remotes:"
+git remote
+
+if [ 0 == $? ]; then
+  	read -p "Remote: " GITREMOTE
+else
+	# git dir does not exist
+	echo "This directory is not a .git repo"
+	echo "Did you run 'git init'?"
+	echo "exit."
+	exit
+fi
+
+# test if remote is accesible
+if ! git ls-remote "$GITREMOTE"; then
+	echo "Fail: git ls-remote "$GITREMOTE""
+	exit
+fi
+
+# change to working dir
+cd "$DIRNAME" || (echo "FAIL: could not change working directory" && exit 1)
+
+# easy GIT upload script
+commitmessage="$@"
+
+while [[ "" == "$commitmessage" ]]; do
+  read -p "Commit message: " commitmessage
+done
+
+# git pull
+if git pull "$GITREMOTE" master; then
+  echo "Succes: git pull "$GITREMOTE" master"; echo "-------";
+else
+  echo "FAIL: git pull "$GITREMOTE" master"; exit 1
+fi
+
+# git status
+git status
+if [ 0 == $? ]; then
+  echo "Succes: git status"; echo "-------";
+  git add *
+else
+  echo "FAIL: git status"; exit 1
+fi
+
+# # git add
+# git add *
+# if [ 0 == $? ]; then
+#   echo "Succes: git add *"; echo "-------";
+#   git commit -m "$commitmessage"
+# else
+#   echo "FAIL: git add *"; exit 1
+# fi
+
+# git commit
+git commit -a -m "$commitmessage"
+if [ 0 == $? ]; then
+  echo "Succes: git commit -a -m "$commitmessage""; echo "-------";
+  git push "$GITREMOTE" master
+fi
+
+# git push
+git push "$GITREMOTE" master
+if [ 0 == $? ]; then
+  echo "Succes: git push "$GITREMOTE" master"; echo "-------";
+fi
+
+# change working dir back to previous one
+cd "$CURRENTDIR"
+if [ 0 == $? ]; then
+  echo "Succes: changed working dir back to: ""$(pwd)"; echo "-------";
+else
+  echo "FAIL: could not change working directory"; exit 1
+fi
+
+# fin
+echo "Succes: all done."; echo "-------";

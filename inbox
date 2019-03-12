@@ -1,0 +1,30 @@
+#!/bin/bash
+# Returns a list of unread of priority emails in your inbox.
+# b.nelissen
+
+INBOX="$(osascript -e '
+	set messageList to {}
+	tell application "Mail"
+		repeat with pendingMessage in (messages of inbox whose read status is true)
+			tell pendingMessage
+				--get senders name
+				set senderName to extract name from sender
+				--if there is no name, or the address line is malformed, better to show just the address
+				if senderName is equal to sender then
+					set senderName to extract address from sender
+				end if
+				--mark flagged messages specially
+				if pendingMessage is flagged status then
+					set bullet to "» "
+				else
+					set bullet to "• "
+				end if
+				copy bullet & senderName & tab & subject & linefeed to end of messageList
+			end tell
+		end repeat
+	end tell
+	messageList as text
+' )"
+
+# return window to user
+echo "$INBOX"

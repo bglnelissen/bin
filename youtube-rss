@@ -1,0 +1,39 @@
+#!/bin/bash
+# Create RSS feed from youtube channel.
+# b.nelissen
+
+# https://www.youtube.com/user/BareBonesSoftware
+
+# in the source code look for: data-channel-external-id
+# output format will be
+# https://www.youtube.com/feeds/videos.xml?channel_id=UC-nSEN7WQW673Uakecv170w
+
+# get URL
+if [ "" == "$1" ]; then
+    echo "Enter your youtube URL here:"
+    read URL
+    # echo "for example: ""\"https://www.youtube.com/user/BareBonesSoftware\" "
+else
+    URL="$1"
+fi
+
+# URL="https://www.youtube.com/user/BareBonesSoftware"
+
+# check if URL is matching to youtube.com
+if [ "$(echo "$URL" | grep --regexp="^https://www.youtube.com/")" == "" ]; then
+    echo "Sorry, you need to enter a URL starting with 'https://www.youtube.com' ..."
+    exit
+else
+    echo "Processing: "$URL""
+    
+    # find the data-channel-external-id
+    LINEWITHID="$(curl -s "$URL" | grep data-channel-external-id | head -1)"
+    
+    # find  data-channel-external-id="UC-nSEN7WQW673Uakecv170w"
+    CHANNELID="$(echo "$LINEWITHID" | sed 's/.*data-channel-external-id="//' |  awk -F'"' '{print $1}')"
+    
+    # get first few characters
+    RSS="https://www.youtube.com/feeds/videos.xml?channel_id=""${CHANNELID}"
+    echo "RSS feed: ""$RSS"
+    open "$RSS"
+fi

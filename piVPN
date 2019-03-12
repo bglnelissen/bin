@@ -1,0 +1,74 @@
+#!/bin/bash
+# Show running vpn connections. This script also has code that converts bytes to human readable format and seconds to human readable time units.
+# b.nelissen
+
+# ssh bas@guu.st sudo cat /var/log/openvpn-status.log 
+
+# Functions
+bytesToHuman(){
+while read B; do
+  [ $B -lt 1024 ] && echo "${B}b" && break
+  KB=$(((B+512)/1024))
+  [ $KB -lt 1024 ] && echo "${KB}kb" && break
+  MB=$(((KB+512)/1024))
+  [ $MB -lt 1024 ] && echo "${MB}mb" && break
+  GB=$(((MB+512)/1024))
+  [ $GB -lt 1024 ] && echo "${GB}gb" && break
+  echo $(((GB+512)/1024)) terabytes
+done
+}
+
+secondsToHuman(){
+while read num; do
+    min=0
+    hour=0
+    day=0
+    result="${num}s"
+    if((num>59));then
+        ((sec=num%60))
+        ((num=num/60))
+        result="${num}m"
+        if((num>59));then
+            ((min=num%60))
+            ((num=num/60))
+                result="${num}h ${min}m"
+            if((num>23));then
+                ((hour=num%24))
+                ((day=num/24))
+                result="${day}d ${hour}h"
+            else
+                ((hour=num))
+            fi
+        else
+            ((min=num))
+        fi
+    else
+        ((sec=num))
+    fi
+    echo "$result"
+done
+}
+
+getVPNStatus(){
+# HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t)
+# Get server info
+ssh bas@guu.st sudo cat /var/log/openvpn-status.log | grep ^CLIENT_LIST | while read CLIENT_LIST; do
+	NAME="$(echo $CLIENT_LIST | awk -F"," '{print $2}')"
+	REALADDRESS="$(echo $CLIENT_LIST | awk -F"," '{print $3}' | sed 's/\(^.*\):.*/\1/g')"
+	VIRTUALADDRESS="$(echo $CLIENT_LIST | awk -F"," '{print $4}')"
+	TOTALRECEIVED="$(echo $CLIENT_LIST | awk -F"," '{print $5}')"
+	TOTALSENT="$(echo $CLIENT_LIST | awk -F"," '{print $6}')"
+	SECONDSCONNECTED="$(( $(date +%s) - $(echo $CLIENT_LIST | awk -F"," '{print $8}') ))"
+	# return result
+	printf "VPN user:$NAME\n◷$(echo $SECONDSCONNECTED | secondsToHuman) ⇣$(echo $TOTALSENT | bytesToHuman) ⇡︎$(echo $TOTALRECEIVED | bytesToHuman) \n$REALADDRESS ⇄ $VIRTUALADDRESS\n"
+done
+}
+# echo "$NAME ◷$(echo $SECONDSCONNECTED | secondsToHuman) ⇣$(echo $TOTALSENT | bytesToHuman) ⇡︎$(echo $TOTALRECEIVED | bytesToHuman) $REALADDRESS ⇄ $VIRTUALADDRESS"
+MESSAGE=$(getVPNStatus)
+
+# API token : aY6AutdHDmH8CTohWM2qxWyv7633qP
+# User key: g8FE6fYxkcAYCdQUgts89CA1eo5CM7
+
+echo "$MESSAGE"
+# PushOver
+curl --silent -F "token=aY6AutdHDmH8CTohWM2qxWyv7633qP" -F "user=g8FE6fYxkcAYCdQUgts89CA1eo5CM7" -F "message=$MESSAGE" https://api.pushover.net/1/messages.json > /dev/null # ignore output

@@ -1,0 +1,145 @@
+#!/bin/bash
+# Convert md to pdf using stylesheets (css).
+# b.nelissen
+
+# https://github.com/bglnelissen/md2pdf
+# wkpdftohtml http://wkhtmltopdf.org/downloads.html
+# brew install markdown
+# makes use of mktemp for the coreutils (`gmktemp`)
+
+# debug
+DEBUG=false
+
+# default CSS
+CSS="/Users/bas/ownCloud/Code/css/phd.css"
+
+# Errors go to stderr
+err() {
+  echo "ERROR: $@" >&2
+}
+usage() {
+  echo "Usage: "$(basename $0)" input.md <style.css>"
+}
+## debug echo
+debug() {
+  if $DEBUG; then
+    echo "DEBUG: $@" >&2
+  fi
+}
+
+# Dependencies
+DEPENDENCIES=("file" "basename" "dirname" "markdown" "wkhtmltopdf")
+checkDependencies(){
+  DEPS=""
+  DEPS_FAIL="0"
+  for DEP in ${DEPENDENCIES[@]}; do
+    if [[ 0 != "$(command -v "$DEP" >/dev/null ;echo "$?")" ]]; then
+       err "Missing dependency: $DEP"
+       DEPS_FAIL=$(($DEPS_FAIL + 1))
+    fi
+  done
+  if [[ "$DEPS_FAIL" > 0 ]]; then
+    err "Fix missing "$DEPS_FAIL" dependencie(s)"
+    exit 1
+  fi
+}
+checkDependencies
+
+# input file empty?
+if [ "" != "$1" ]; then
+  infiletmp="$1"
+  infile="$(echo "$(cd "$(dirname "$infiletmp")"; pwd)"/"$(basename "$infiletmp")")" # get full path of infiletmp
+else
+  err "No input file given."
+  usage
+  exit
+fi
+debug "infile: $infile"
+
+# css file empty?
+if [ -f "$2" ]; then 
+  stylesheettmp="$2"
+  stylesheet="$(echo "$(cd "$(dirname "$stylesheettmp")"; pwd)"/"$(basename "$stylesheettmp")")" # get full path of stylesheet
+  debug "stylesheet: $stylesheet"
+else
+  debug "Trying to use default stylesheet: "$CSS""
+  if [ -f "$CSS" ]; then
+    stylesheettmp="$CSS"
+    stylesheet="$(echo "$(cd "$(dirname "$stylesheettmp")"; pwd)"/"$(basename "$stylesheettmp")")" # get full path of stylesheet
+    debug "stylesheet: $stylesheet"
+  else
+    debug "Default stylesheet not found."
+  fi
+fi
+
+# variables (based on input)
+intype="$(file -b --mime-type "${infile}")"
+debug "intype: $intype"
+inenc="$(file -b --mime-encoding "${infile}")"
+debug "inenc: $inenc"
+inext="${infile##*.}"
+debug "inext: $inext"
+tmpfile="$(gmktemp --suffix .html "${infile}".XXXXXX)" || exit 1       # exit if tmp file can not be created
+
+# Exit and cleanup
+set -e
+cleanUp(){
+  # remove temp files
+  rm -f "${tmpfile}"
+}
+trap cleanUp EXIT
+
+# check files
+if [ "${intype}" != "text/html" ] ; then
+  err "mime type of input file must be 'text/html' (not ${intype})"
+fi
+
+# output location
+if [ "${inext}" = "${infile}" ] ; then
+  outfile="${infile}".pdf
+else
+  outfile="${infile%.${inext}}".pdf
+fi
+debug "$outfile"
+
+# First: Create a new empty tmp file
+> "${tmpfile}"
+
+# Second: character encodings to top if needed
+if [ "${inenc}" == "utf-8" ] ; then
+  echo "<meta charset=\"UTF-8\">" >> "${tmpfile}"
+fi
+
+# Third: stylesheet 
+if [ -f "$stylesheet" ] ; then
+  echo "<head>
+          <link rel=\"stylesheet\" type=\"text/css\" href=\""${stylesheet}"\">
+        </head>" >> "${tmpfile}"
+else
+  debug "Using no stylesheet"
+fi
+
+# Fourth: html
+markdown "${infile}" >> "${tmpfile}"
+
+# HTML to PDF
+# - The HTML file needs to end with `.html`
+# - Stylesheet is gathered from the html <head>
+# --quiet silent output
+# - DPI needs to be 300 for correct scaling (at least on OS X)
+# - Rest of the options are default
+wkhtmltopdf --dpi 300 --page-size A4 --orientation Portrait "${tmpfile}" "${outfile}"
+# wkhtmltopdf --dpi 300 --page-size A4 --orientation Landscape "${tmpfile}" "${outfile}"
+
+# Verbose
+debug "infile: ""${infile}"
+debug "stylesheet: ""${stylesheet}"
+debug "tmpfile: ${tmpfile}"
+debug "outfile: ${outfile}"
+
+# Cleanup
+cp -v "${tmpfile}" "${outfile}".html
+rm -f "${tmpfile}" # is also done at cleanUp()
+
+# Preview
+open "${outfile}"

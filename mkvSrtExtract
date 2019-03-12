@@ -1,0 +1,27 @@
+#!/bin/bash
+# Extract mkv subtitles to srt files.
+# b.nelissen
+
+# Functions
+function pause(){
+   read -p "$*"
+}
+
+# ask for folder with tiff files
+if [ ! -d "$1" ];
+then
+  # no directory found, exit with error
+  echo "No directory found"
+  echo "Use the script like:"
+  echo "$0 directory"
+  echo
+  exit 1
+fi
+
+# extract subtittles from .mkv files
+echo "Extracting subtitles"
+list=$(ls "$1" | grep .mkv)
+for file in $list; do
+	subid=$(mkvmerge -i "$1"/$file | grep subtitles | awk -F" " '{print $3}')
+	mkvextract tracks "$1"/$file "$subid""$1"/$(echo $file | awk -F".mkv" '{print $1}').srt
+done

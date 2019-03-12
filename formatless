@@ -1,0 +1,5 @@
+#!/bin/bash
+# Very simple `pbpaste|pbcopy` to clean the clipboard and exclude anything but text.
+# b.nelissen
+
+pbpaste|pbcopy

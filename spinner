@@ -1,0 +1,20 @@
+#!/bin/bash
+# Demo code for a waiting timer/spinner.
+# b.nelissen
+
+# stepsize is the number of characters per animation step
+# frames is the frame-art
+# stepsize=1; frames='-\|/'
+# stepsize=1; frames='😀😃😄😁😆😂🤣😂🤣😂😆😁😄😃'
+# stepsize=1; frames='⌜⌝⌟⌞'
+# stepsize=1; frames='🕐🕜🕑🕝🕒🕞🕓🕟🕔🕠🕕🕡🕖🕢🕗🕣🕘🕤🕙🕥🕚🕦🕛🕧'
+stepsize=12; frames=' \ 🎾      | \🎾        |  | 🎾      |  |  🎾     |  |   🎾    |  |    🎾   |  |     🎾  |  |      🎾 /  |        🎾/ |      🎾 |  |     🎾  |  |    🎾   |  |   🎾    |  |  🎾     | '
+# stepsize=10; frames='\ o-----|  |-o----|  |--o---|  |---o--|  |----o-/  |-----o / |----o-|  |---o--|  |--o---|  \-o----| '
+# stepsize=1; frames='⛔️  '
+
+# the loop
+while true; do
+	s=$(( (s+$stepsize) %${#frames} )); 
+	printf "\r${frames:$s:$stepsize}"
+	sleep 0.2
+done

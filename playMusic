@@ -1,0 +1,5 @@
+#!/bin/bash
+# Play `mp3|m4a` files in the ~/Music directory.
+# b.nelissen
+
+find ~/Music  -name '*.m4a' -name '*.mp3' | gsort -R | while read file; do echo "$file";afplay -v 0.8 "$file";done

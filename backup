@@ -1,0 +1,35 @@
+#!/bin/bash
+# Backup selected file by giving it a date stamp, sha1 hash  and move it to a directory named 'backup'.
+# b.nelissen
+
+echo
+COUNTER=0
+
+for F in "$@"; do
+	# set variables
+	FILE="${F}"
+	# path variables
+	FILEFULL="$(echo "$(cd "$(dirname "$FILE")"; pwd)"/"$(basename "$FILE")")" # full path $FULL
+	BASENAME="$(basename "$FILEFULL")"    # basename
+	DIRNAME="$(dirname "$FILEFULL")"      # dirname
+	EXTENSION="${BASENAME##*.}"           # extension
+	FILEPATH="${FILEFULL%.*}"             # full path, no extension
+	FILENAME="${BASENAME%.*}"             # filename, no extension
+  SHASUM="$(cat "${FILE}" | shasum  | awk '{print $1}')"
+  DATE="$(date +%Y%m%d%H%M)"
+  
+  echo "File = $FILE"
+  echo "SHA1 = $SHASUM"
+  mkdir -p "$DIRNAME"/backup
+  cp -rv "${FILE}" "$DIRNAME"/backup/"${FILENAME}"."SHA-${SHASUM}"."${DATE}"."${EXTENSION}"
+  if [ 0 == "$?" ] && [ "$SHASUM" != "" ]; then
+    # output to user.
+    echo "Succes ✔"
+    echo
+    let "COUNTER++"
+  else
+    echo "Fail: ${FILE}"
+  fi
+done
+
+echo "Files successfully backed: ${COUNTER}"

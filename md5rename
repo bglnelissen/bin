@@ -1,0 +1,12 @@
+#!/bin/bash
+# Rename files / folders to their `md5` hash for finding unique files. For use in scripts or workflows.
+# b. nelissen
+
+if [[ -e "$1" || -d "$1" ]] ; then
+    # file or folder exists
+    echo "$1"
+    mv -v "$1" "$(md5sum "$1" | cut -d' ' -f1).${1##*.}"
+else
+    echo "No valid file or folder: $1"
+    exit 1
+fi

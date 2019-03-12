@@ -1,0 +1,18 @@
+#!/bin/bash
+# Convert markdown to docx format using pandoc.
+# b. nelissen
+
+if [ !  -f "$1" ]; then
+	echo "No input file found."
+	echo "$(basename "$0") \"input.md\" \"output.docx\""
+	exit 1
+fi
+
+if [ -z "$2" ]; then
+	echo "No output file found."
+	echo "$(basename "$0") \"input.md\" \"output.docx\""
+	exit 1
+fi
+
+# actual command, notice that the input and output are reversed
+pandoc -s -o "$2" "$1"

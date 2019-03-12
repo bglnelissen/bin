@@ -1,0 +1,204 @@
+#!/bin/bash
+# A script for raspberry pi to toggle on or off specific GPIO port.
+# B. Nelissen, 2018 jan
+
+# messages and errors
+echoverbose(){
+  # verbose=false
+  verbose=true
+  if "$verbose"; then echo "$@"; fi
+}
+ERRORMSG=()
+presenterrors(){
+  if [ ! -z "$ERRORMSG" ]; then
+    for MSG in "${ERRORMSG[@]}"; do
+      echo "Error: ${MSG}"
+    done
+    echo
+    echo "See: $0 help" 
+  fi
+}
+errormsg(){
+  ERRORMSG+=("$@")
+}
+exitError(){
+  presenterrors
+  exit 1
+}
+
+# Available BCM - Broadcom pin numbers, commonly called "GPIO"
+GPIOPINS=(2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27)
+
+# Dependencies
+if ! command -v gpio >/dev/null ; then
+   errormsg "wiringPi/gpio not installed."
+   errormsg "Try: sudo apt-get wiringpi"
+   exitError
+fi
+
+# help message
+usage(){
+  presenterrors
+  cat << EOF
+Always run ${0} with root privileges.
+This script simplefies the already simple 'wiringpi' package.
+Examples of using ${0}
+
+# turn on GPIO 26 
+$0 26 [high|1|on]
+
+# turn off GPIO 26 
+$0 26 [low|0|off]
+
+# switch current state of GPIO 26
+$0 26 [toggle|switch]
+
+# unset GPIO 26
+$0 26 [unset|clear|unexport|off|reset]
+
+# show this help message
+$0 help
+
+# GPIO pin layout
+gpio readall
+
+Valid pins: ${GPIOPINS[*]}
+
+EOF
+}
+
+testForRoot(){
+  # run as root?
+  if [[ $EUID -ne 0 ]]; then
+     errormsg "This script must be run as root" 
+     exitError
+  fi
+}
+
+# program logic functions
+askForGpioPin(){
+  # Check for empty input string 
+  while [ -z "$GPIO" ]; do
+    echo "Enter a valid GPIO pin:"
+    read GPIO
+  
+    # Check if GPIO pin is a valid pin
+    if [[ ! " ${GPIOPINS[@]} " =~ " ${GPIO} " ]]; then
+      errormsg "Sorry, but the GPIO pin is invalid: "${GPIO}""
+      exitError
+    fi
+  done
+}
+askForAction(){
+  # Check for empty input string 
+  while [ -z "$ACTION" ]; do
+    echo "Enter a valid action:"
+    read ACTION
+  done
+}
+
+# GPIO functions
+gpioPinEnable(){
+  # Check if GPIO pin is a valid pin
+  if [[ ! " ${GPIOPINS[@]} " =~ " ${GPIO} " ]]; then
+    errormsg "Sorry, but the GPIO pin is invalid: "${GPIO}""
+    exitError
+  fi
+  # Check if pin already exist or else create it.
+  if [ ! -d "${PINADDRESS}" ]; then
+    # pin not found, export pin to userspace
+    echo "${GPIO}" > /sys/class/gpio/export
+    # Sets pin as an output
+    if [ "out" != "$(cat /sys/class/gpio/gpio"${GPIO}"/direction)" ]; then
+      echo "out" > /sys/class/gpio/gpio"${GPIO}"/direction
+    fi
+  fi
+  # bug fix
+  # a bug prevents the GPIO to be acceseble when there has not been an `ls` 
+  cd /sys/class/gpio/
+  cd /sys/class/gpio/gpio"${GPIO}"/
+  ls /sys/class/gpio > /dev/null
+  ls /sys/class/gpio/gpio"${GPIO}"/ > /dev/null 
+  echo out > /sys/class/gpio/gpio"${GPIO}"/direction 
+}
+gpioPinValue(){
+  # return current GPIO pin value, used in other functions
+  echoverbose "$(cat /sys/class/gpio/gpio"${GPIO}"/value)"
+}
+gpioHigh(){
+  # check if GPIO can be used, else enable it, than set it to high.
+  gpioPinEnable
+  echo "1" > /sys/class/gpio/gpio"${GPIO}"/value
+  gpioPinValue
+}
+gpioLow(){
+  # check if GPIO can be used, else enable it, than set it to low.
+  gpioPinEnable
+  echo "0" > /sys/class/gpio/gpio"${GPIO}"/value
+  gpioPinValue
+}
+gpioToggle(){
+  # check if GPIO can be used, else enable it, than switch to high or low
+  gpioPinEnable
+  if [ 0 -eq "$(cat /sys/class/gpio/gpio"${GPIO}"/value)" ]; then
+    gpioHigh
+  else
+    gpioLow
+  fi
+}
+gpioReset(){
+  # unset the GPIO pin
+  if [ -d "${PINADDRESS}" ]; then
+    echo "${GPIO}" > /sys/class/gpio/unexport
+    echoverbose "unexport: ${PINADDRESS}"
+  else
+    echoverbose "Nothing to unexport: ${PINADDRESS}"
+  fi
+}
+
+# The actual program logic
+case "$1" in
+  # Parse first argument, if non is given, ask for it.
+  '')
+    askForGpioPin
+    ;;
+  *[!0-9]*)
+    usage
+    exitError
+    ;;
+  *)
+    GPIO="$1"
+    ;;
+esac
+PINADDRESS="/sys/class/gpio/gpio"${GPIO}""
+
+
+if [ -z "$2" ]; then
+  # Parse second argument, if non is given, ask for it.
+  askForAction
+else
+  ACTION="$2"
+fi
+
+case "$ACTION" in
+  # check if the second argument is valid and do the action.
+  high | 1 | on)
+    gpioHigh
+    ;;
+  low|0|off)
+    gpioLow
+    ;;
+  switch|toggle)
+    gpioToggle
+    ;;
+  unset|exit|clear|unexport|off|reset)
+    gpioReset
+    ;;    
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    errormsg "not a valid action found."
+    exitError
+    ;;
+esac

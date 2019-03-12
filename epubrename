@@ -1,0 +1,95 @@
+#!/bin/bash
+# Extract meta data from `epub` files and rename them accordingly.
+# b.nelissen
+
+# Dependencies
+DEPENDENCIES=("epubmeta") # must exist in PATH
+DEPENDENCIES=( $( for el in "${DEPENDENCIES[@]}"; do echo "$el"; done | sort) )
+
+# Variables
+SCRIPTNAME="$(basename $0)"
+
+# Functions
+checkDependencies(){
+  DEPS=""
+  DEPS_FAIL="0"
+  for DEP in ${DEPENDENCIES[@]}; do
+    if [[ 0 != "$(command -v "$DEP" >/dev/null ;echo "$?")" ]]; then
+       err "Missing dependency: $DEP"
+       DEPS_FAIL=$(($DEPS_FAIL + 1))
+    fi
+  done
+  if [[ "$DEPS_FAIL" > 0 ]]; then
+    # only warning when --ignore-dependencies is set.
+    if [[ "$IGNOREDEPENDENCIES" == "true" ]]; then
+      err "Ignoring missing dependencies (${DEPS_FAIL}), continue..."
+    else
+      err "Fix missing dependencies (${DEPS_FAIL})"
+      usage
+      exit 1
+    fi
+  fi
+}
+
+# usage message
+usage() {
+cat <<- EOF
+Usage:
+- $SCRIPTNAME file.epub [output/folder]
+EOF
+}
+
+# Errors go to stderr
+err() {
+  echo "${SCRIPTNAME} ERROR: $@" >&2
+}
+
+# check if input exists
+INPUTFILE="$1"
+if [[ -f "$INPUTFILE" || "$INPUTFILE" =~ ".*\.epub" ]]; then
+  echo "Epub file found: \"$INPUTFILE\""
+else
+  err "No epub file found."
+  usage
+  exit 1
+fi
+
+# check if output folder exists
+if [ -d "$2" ]; then
+  OUTPUTDIR="$2"
+  echo "Output folder found: \"$OUTPUTDIR\""
+else
+  echo "No output folder found, using current directory."
+  OUTPUTDIR="."
+fi
+
+# start collecting info in 1 variable
+EBOOKMETA="$(epubmeta "$INPUTFILE")"
+
+# fetch metadata
+TITLE="$(echo "$EBOOKMETA" | grep '^[ ]*title' | strings )"
+# most of the times authors are in the file-as variable, but sometimes in the creator or the text variable
+# clean characters with `strings`
+AUTHOR="$(echo "$EBOOKMETA" | grep '^[ ]*creator' | grep -m 1 '^[ ]*creator' | perl -pe 's/[ ]*creator:[ ]*//' | strings )"
+if [ -z "$AUTHOR" ];then
+  AUTHOR="$(echo "$EBOOKMETA" | grep -A 3 '^[ ]*creator' | grep -m 1 '^[ ]*file-as' | perl -pe 's/[ ]*file-as:[ ]*//' | strings )"
+elif [ -z "$AUTHOR" ];then
+  AUTHOR="$(echo "$EBOOKMETA" | grep -A 3 '^[ ]*creator' | grep -m 1 '^[ ]*text' | perl -pe 's/[ ]*text:[ ]*//' | strings )"
+else
+  AUTHOR="Unknown"
+fi
+
+
+# rename
+NEWNAME="$AUTHOR - $TITLE"
+
+# Output location
+OUTPUTFILE="$OUTPUTDIR"/"$NEWNAME"
+if [ -f "$OUTPUTFILE" ]; then
+  err "File already exists: "$NEWNAME""
+  exit 1
+else
+  # rename
+  echo "mv '"$INPUTFILE"' '"$OUTPUTFILE"'"
+fi
+# (do not remove original input [yet])

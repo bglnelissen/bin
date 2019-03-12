@@ -1,0 +1,21 @@
+#!/bin/bash
+# A script to test the runtimes.
+# bnelissen
+
+# gnu time only!
+
+# memo to self: Can't we just use `time`?
+
+# a script to test the runtimes
+LOGDIR="${HOME}/runtimeLogs"
+TMP="$(mktemp)"
+#/usr/local/bin/gtime # /usr/bin/time
+
+mkdir -p "$LOGDIR"
+echo "Start: $(/bin/date)" >> "$TMP"
+/usr/local/bin/gtime --append --output "$TMP" "$@" >> "$TMP"
+echo "Stop: $(/usr/bin/uptime)" >> "$TMP" 
+cat "$TMP" | awk 'NR==2' | awk '{print "wallclock " $3}' | /usr/bin/perl -p -e 's/elapsed//' >> "$TMP"
+/bin/hostname >> "$TMP"
+echo "$@" >> "$TMP"
+cp "$TMP" "$LOGDIR/"

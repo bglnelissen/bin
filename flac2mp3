@@ -1,0 +1,21 @@
+#!/bin/bash
+# Convert `flac` to mp3. Other audiofiles should also work.
+# B. Nelissen
+# Summer 2014
+
+OUTPUTEXTENSION=".mp3"
+KBITS="192"
+
+if [ -f "$1" ] && [ -n "${1}" ] ; then
+	# set variables
+	FILE=$1
+	filenameext=$(basename "$FILE")
+	extension="${filenameext##*.}"
+	filename="${FILE%.*}" # full path without extension
+  
+  # actual command
+  echo "mp3 quality (${KBITS} kbit/s) ($filename)"
+  ffmpeg -i "$FILE" -ab ${KBITS}k -map_metadata 0 "${filename}.mp3"
+else
+	echo "No such file: $FILE"
+fi

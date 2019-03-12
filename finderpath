@@ -1,0 +1,23 @@
+#!/bin/bash
+# Returns the `filepath` of the foremost Finder window.
+# b.nelissen
+
+# a use would be to create an alias in ~/.bash_profile such as:
+# alias cdf='cd "$(finderpath.sh)"'
+
+FINDERPATH="$(osascript -e '
+# Get top Finder window or 'Home' if none
+tell application "Finder"
+	set myWindowList to the name of every window
+	if not myWindowList = {} then
+		set theFilePath to target of the front Finder window
+	else
+		set theFilePath to home as Unicode text
+	end if
+end tell
+
+set theFilePath to POSIX path of (theFilePath as alias)
+')"
+
+# return window to user
+printf "$FINDERPATH"

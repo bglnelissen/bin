@@ -1,0 +1,4 @@
+#!/bin/bash
+# rsync all new open RA maps
+# rsync --delete --stats --progress -ap rsync://resource.openra.net/maps/ /Users/bas/Library/Application Support/OpenRA/maps/
+rsync --stats --progress -ap rsync://resource.openra.net/maps/ "$HOME""/Library/Application Support/OpenRA/maps/"
